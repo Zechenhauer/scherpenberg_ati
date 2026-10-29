@@ -174,8 +174,10 @@
             
             <div class="controls" style="margin-bottom: 15px;">
                 <span id="currentRoundTitle" style="font-weight: bold; color: var(--accent-gold);">Spieltag</span>
-                <button onclick="manualRefresh()" style="background: #16264f; border-color: var(--accent-gold); color: var(--accent-gold);">🔄 Aktualisieren</button>
-                <button onclick="subscribePush()" style="background: var(--accent-gold); color: #000; font-weight: bold;">🔔 Tor-Alarm aktivieren</button>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="manualRefresh()" style="background: #16264f; border-color: var(--accent-gold); color: var(--accent-gold);">🔄 Aktualisieren</button>
+                    <button onclick="subscribePush()" style="background: var(--accent-gold); color: #000; font-weight: bold;">🔔 Tor-Alarm aktivieren</button>
+                </div>
             </div>
 
             <h2 id="matchesCardTitle" style="margin-top: 15px;">Begegnungen</h2>
@@ -504,7 +506,6 @@
                         // Abgleich mit sent_goals_oberliga Cache
                         let cachedScore = sentGoalsCache[fixtureId];
                         if (!cachedScore) {
-                            // Initialer Zustand ohne Alarm direkt cachen
                             recordGoalInSupabase(fixtureId, goalsHome, goalsAway);
                         } else {
                             if (goalsHome > cachedScore.home || goalsAway > cachedScore.away) {
