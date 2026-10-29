@@ -3,122 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oberliga Niederrhein PRO — Live, Tabelle, Torjäger & Push</title>
+    <title>SV Scherpenberg — Oberliga Niederrhein</title>
     
-    <!-- OneSignal SDK -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "30528bc1-cf0a-475d-bc60-12bd4bf0b7b9",
-          safari_web_id: "",
-          path: "/oberliga/",
-          allowLocalhostAsSecureOrigin: true,
-          notifyButton: {
-            enable: true,
-            size: 'medium',
-            position: 'bottom-right',
-            colors: {
-              'circle.background': '#00ff87',
-              'circle.foreground': '#000000',
-            }
-          },
-        });
-      });
-    </script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         :root {
-            --bg-color: #070d1a;
-            --card-bg: #0f1115;
-            --card-hover: #161b22;
-            --accent-color: #00ff87;
-            --accent-hover: #00cc6a;
+            --bg-color: #070f26;          /* Tiefes Scherpenberger Blau */
+            --card-bg: #0c1836;
+            --card-hover: #132247;
+            --accent-gold: #d4af37;        /* Edles Gold */
+            --accent-gold-hover: #bda031;
             --text-main: #ffffff;
             --text-muted: #8b949e;
-            --border-color: #30363d;
+            --border-color: #1e3363;
             --live-red: #ff3333;
-            --scherpenberg-color: #ffaa00;
+            --scherpenberg-bg: rgba(212, 175, 55, 0.15);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); padding: 15px; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 900px; }
+        .container { width: 100%; max-width: 950px; }
 
         header { text-align: center; margin-bottom: 20px; }
-        h1 { font-size: 2.2rem; color: var(--accent-color); margin-bottom: 5px; }
+        h1 { font-size: 2.2rem; color: var(--accent-gold); margin-bottom: 5px; }
         .subtitle { color: var(--text-muted); font-size: 0.95rem; }
-        .author-sub { color: var(--accent-color); font-size: 0.8rem; font-weight: 500; margin-top: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
+        .author-sub { color: var(--accent-gold); font-size: 0.8rem; font-weight: 500; margin-top: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
 
-        .status-box { background: #161b22; border: 1px solid var(--accent-color); padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+        .status-box { background: var(--card-bg); border: 1px solid var(--accent-gold); padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
 
-        /* AS-Rom Laufband Design */
-        .ticker-wrapper { width: 100%; background: #0c0809; border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; margin-bottom: 20px; display: flex; align-items: center; height: 48px; position: relative; }
-        .ticker-label { background: var(--accent-color); color: #000; font-size: 0.75rem; font-weight: bold; padding: 0 14px; height: 100%; display: flex; align-items: center; z-index: 3; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; box-shadow: 4px 0 10px rgba(0,0,0,0.5); }
+        /* Admin Bereich Styles */
+        .admin-card {
+            background: var(--card-bg);
+            border: 1px solid var(--accent-gold);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        body.admin-mode .admin-card { display: block; }
+
+        /* Laufband Design */
+        .ticker-wrapper { width: 100%; background: #050b1a; border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; margin-bottom: 20px; display: flex; align-items: center; height: 48px; position: relative; }
+        .ticker-label { background: var(--accent-gold); color: #000; font-size: 0.75rem; font-weight: bold; padding: 0 14px; height: 100%; display: flex; align-items: center; z-index: 3; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; box-shadow: 4px 0 10px rgba(0,0,0,0.5); }
         .ticker-content-box { overflow: hidden; white-space: nowrap; flex: 1; position: relative; display: flex; align-items: center; }
         .ticker-track { display: flex; white-space: nowrap; will-change: transform; animation: ticker-scroll 35s linear infinite; }
         .ticker-track:hover { animation-play-state: paused; }
-        .ticker-item { display: inline-flex; align-items: center; background: #150a0d; border: 1px solid var(--border-color); padding: 6px 14px; margin: 0 6px; border-radius: 8px; color: #ffffff; font-size: 0.82rem; font-weight: 500; gap: 10px; }
+        .ticker-item { display: inline-flex; align-items: center; background: var(--card-bg); border: 1px solid var(--border-color); padding: 6px 14px; margin: 0 6px; border-radius: 8px; color: #ffffff; font-size: 0.82rem; font-weight: 500; gap: 10px; }
         .ticker-team-logo { width: 20px; height: 20px; object-fit: contain; vertical-align: middle; }
-        .ticker-score { color: #ffffff; font-weight: bold; font-size: 0.9rem; background: #251216; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-color); }
+        .ticker-score { color: #ffffff; font-weight: bold; font-size: 0.9rem; background: var(--bg-color); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-color); }
         @keyframes ticker-scroll { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } }
 
         /* Tor-Alarm Banner */
-        #goalAlertBanner { display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #0f1115, #1a2332); border: 2px solid var(--accent-color); box-shadow: 0 10px 30px rgba(0,255,135,0.3); border-radius: 14px; padding: 18px 24px; z-index: 2000; width: 90%; max-width: 480px; text-align: center; animation: bounce-in 0.5s ease; cursor: pointer; }
+        #goalAlertBanner { display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #0c1836, #1e3363); border: 2px solid var(--accent-gold); box-shadow: 0 10px 30px rgba(212,175,55,0.3); border-radius: 14px; padding: 18px 24px; z-index: 2000; width: 90%; max-width: 480px; text-align: center; animation: bounce-in 0.5s ease; cursor: pointer; }
         @keyframes bounce-in { 0% { transform: translate(-50%, -30px); opacity: 0; } 100% { transform: translate(-50%, 0); opacity: 1; } }
-        .goal-alert-title { font-size: 1.2rem; font-weight: 900; color: var(--accent-color); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .goal-alert-title { font-size: 1.2rem; font-weight: 900; color: var(--accent-gold); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
         .goal-alert-scorer { font-size: 1rem; font-weight: bold; margin-bottom: 8px; color: #fff; }
         .goal-alert-match { font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 6px; }
 
-        /* Navigation */
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .nav-tab-btn { flex: 1; background: var(--card-bg); color: var(--text-muted); border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: center; transition: all 0.2s; }
-        .nav-tab-btn:hover { background: var(--card-hover); color: var(--text-main); }
-        .nav-tab-btn.active { background: var(--accent-color); color: #000; border-color: var(--accent-color); }
-
-        /* Top 3 Torschützen Kachel */
-        .top-scorers-widget { background: linear-gradient(135deg, #121824, #0f1115); border: 1px solid var(--accent-color); border-radius: 12px; padding: 15px 20px; margin-bottom: 20px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,255,135,0.15); transition: transform 0.2s; }
-        .top-scorers-widget:hover { transform: translateY(-2px); }
-        .top-scorers-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .top-scorers-title { font-size: 0.95rem; font-weight: bold; color: var(--accent-color); display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .top-scorers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .top-scorer-podium { background: #161b22; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; text-align: center; }
-        .top-scorer-name { font-size: 0.85rem; font-weight: bold; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .top-scorer-goals { font-size: 0.75rem; color: var(--accent-color); font-weight: bold; }
+        .header-top-bar { display: flex; justify-content: flex-end; margin-bottom: 10px; gap: 10px; align-items: center; }
+        .admin-lock { background: var(--card-bg); border: 1px solid var(--border-color); font-size: 0.9rem; cursor: pointer; color: var(--text-muted); padding: 6px 12px; border-radius: 6px; transition: all 0.2s; }
+        .admin-lock.unlocked { color: var(--accent-gold); border-color: var(--accent-gold); background: rgba(212, 175, 55, 0.1); }
 
         /* Runden Reiter */
         .rounds-container { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 5px; }
         .round-tab-btn { background: var(--card-bg); color: var(--text-muted); border: 1px solid var(--border-color); padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.8rem; cursor: pointer; white-space: nowrap; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 2px; }
         .round-tab-btn:hover { background: var(--card-hover); color: var(--text-main); }
-        .round-tab-btn.active { background: #388bfd; color: #fff; border-color: #388bfd; }
+        .round-tab-btn.active { background: var(--accent-gold); color: #000; border-color: var(--accent-gold); font-weight: bold; }
         .round-date-sub { font-size: 0.68rem; opacity: 0.8; font-weight: normal; }
 
         .controls { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 20px; background: var(--card-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); flex-wrap: wrap; }
-        button { background: #21262d; color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; transition: background 0.2s; }
-        button:hover { background: #30363d; }
+        button { background: #16264f; color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; transition: background 0.2s; }
+        button:hover { background: #1e3363; }
 
-        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-        h2 { font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--accent-color); }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 25px; }
+        h2 { font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--accent-gold); }
 
         /* Spiel-Item */
         .match-card-item { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 15px; margin-bottom: 10px; cursor: pointer; transition: background 0.15s; }
         .match-card-item:hover { background: var(--card-hover); }
-        .match-card-item.highlight-scherpenberg { background: linear-gradient(135deg, #1c170c, #0f1115); border-left: 4px solid var(--scherpenberg-color); border-color: #443300; }
+        .match-card-item.highlight-scherpenberg { background: var(--scherpenberg-bg); border-left: 4px solid var(--accent-gold); border-color: var(--accent-gold); }
         
         .match-main-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; }
         .team { display: flex; align-items: center; gap: 8px; width: 38%; }
         .team.home { justify-content: flex-end; text-align: right; }
         .team img { width: 22px; height: 22px; object-fit: contain; }
         .score-box { text-align: center; width: 24%; }
-        .score { font-weight: bold; background: #21262d; padding: 4px 10px; border-radius: 6px; display: inline-block; min-width: 55px; font-size: 0.95rem; }
+        .score { font-weight: bold; background: var(--bg-color); padding: 4px 10px; border-radius: 6px; display: inline-block; min-width: 55px; font-size: 0.95rem; }
         .match-info-sub { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 2px; }
 
         .live-badge { background: var(--live-red); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; animation: pulse-live 1.5s infinite; display: inline-block; }
         @keyframes pulse-live { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
         .match-scorers-preview { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border-color); font-size: 0.8rem; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .scorer-tag { display: inline-flex; align-items: center; gap: 6px; background: #161b22; padding: 3px 10px; border-radius: 4px; border: 1px solid var(--border-color); width: 100%; max-width: 400px; justify-content: center; }
-        .scorer-score-badge { font-weight: bold; color: var(--accent-color); background: #21262d; padding: 1px 6px; border-radius: 3px; font-size: 0.75rem; }
+        .scorer-tag { display: inline-flex; align-items: center; gap: 6px; background: #070f26; padding: 3px 10px; border-radius: 4px; border: 1px solid var(--border-color); width: 100%; max-width: 400px; justify-content: center; }
+        .scorer-score-badge { font-weight: bold; color: var(--accent-gold); background: var(--card-bg); padding: 1px 6px; border-radius: 3px; font-size: 0.75rem; }
 
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th, td { padding: 8px 8px; text-align: left; border-bottom: 1px solid var(--border-color); }
@@ -128,22 +107,22 @@
         .table-team { display: flex; align-items: center; gap: 6px; }
         .table-team img { width: 18px; height: 18px; object-fit: contain; }
 
-        tr.promotion-zone td:first-child { border-left: 4px solid #00ff87; }
+        tr.promotion-zone td:first-child { border-left: 4px solid var(--accent-gold); }
         tr.relegation-zone td:first-child { border-left: 4px solid var(--live-red); }
-        tr.highlight-row { background: rgba(255, 170, 0, 0.12); }
-        tr.highlight-row td:first-child { border-left: 4px solid var(--scherpenberg-color); }
+        tr.highlight-row { background: rgba(212, 175, 55, 0.2); }
+        tr.highlight-row td:first-child { border-left: 4px solid var(--accent-gold); }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
-        .modal-content { background: var(--card-bg); border: 1px solid var(--accent-color); border-radius: 12px; width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; padding: 25px; position: relative; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--accent-gold); border-radius: 12px; width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; padding: 25px; position: relative; }
         .close-btn { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; background: none; border: none; }
         .close-btn:hover { color: var(--text-main); }
         .modal-header { text-align: center; margin-bottom: 20px; }
         .modal-teams { display: flex; justify-content: space-around; align-items: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 8px; }
         .modal-teams img { width: 35px; height: 35px; object-fit: contain; }
         
-        .event-item { display: flex; align-items: center; justify-content: space-between; font-size: 0.88rem; padding: 6px 10px; border-bottom: 1px solid var(--border-color); color: var(--text-main); background: #161b22; margin-bottom: 5px; border-radius: 6px; }
-        .event-time { font-weight: bold; color: var(--accent-color); min-width: 35px; }
-        .event-score { background: #21262d; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+        .event-item { display: flex; align-items: center; justify-content: space-between; font-size: 0.88rem; padding: 6px 10px; border-bottom: 1px solid var(--border-color); color: var(--text-main); background: #070f26; margin-bottom: 5px; border-radius: 6px; }
+        .event-time { font-weight: bold; color: var(--accent-gold); min-width: 35px; }
+        .event-score { background: var(--card-bg); padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -155,6 +134,10 @@
     </div>
 
     <div class="container">
+        <div class="header-top-bar">
+            <button class="admin-lock" id="adminLockBtn" onclick="toggleAdminMode()" title="Admin Modus">🔒 Admin</button>
+        </div>
+
         <div class="ticker-wrapper">
             <div class="ticker-label" id="tickerLabel">⚽ Oberliga Ticker</div>
             <div class="ticker-content-box">
@@ -165,8 +148,8 @@
         </div>
 
         <header>
-            <h1>Oberliga Niederrhein PRO</h1>
-            <div class="subtitle">Live-Ergebnisse, Tabelle & Push (Saison 2026/27)</div>
+            <h1>SV Scherpenberg</h1>
+            <div class="subtitle">Oberliga Niederrhein • Live-Spiele & Tabelle (Saison 2026/27)</div>
             <div class="author-sub">Webmanagement Jürgen Schützendorf</div>
         </header>
 
@@ -174,50 +157,39 @@
             <span>Verbinde mit API...</span>
         </div>
 
-        <!-- Top 3 Torschützen Kachel -->
-        <div class="top-scorers-widget" onclick="openTopScorersModal()">
-            <div class="top-scorers-header">
-                <span class="top-scorers-title">⚡ Top-Torschützen (Gesamte Liste anzeigen)</span>
-                <span style="font-size: 0.8rem; color: var(--accent-color);">Tabelle ansehen &rarr;</span>
+        <!-- ADMIN BEREICH (Öffnet sich bei PIN 1919) -->
+        <div class="admin-card" id="adminCard">
+            <div style="font-weight: bold; color: var(--accent-gold); margin-bottom: 10px; text-transform: uppercase; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+                <span>🔧 Supabase Push-Benachrichtigung testen</span>
+                <span style="font-size: 0.7rem; color: #2ea043;">● Admin-Modus Aktiv (PIN 1919)</span>
             </div>
-            <div class="top-scorers-grid" id="topScorersWidgetGrid">
-                <div class="top-scorer-podium"><div class="top-scorer-name">Lade...</div></div>
-                <div class="top-scorer-podium"><div class="top-scorer-name">Lade...</div></div>
-                <div class="top-scorer-podium"><div class="top-scorer-name">Lade...</div></div>
-            </div>
+            <button style="background: #238636; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; width: 100%; font-weight: bold; cursor: pointer;" onclick="sendTestPush()">🚀 Test-Push Benachrichtigung senden</button>
         </div>
 
-        <div class="nav-tabs">
-            <button class="nav-tab-btn active" onclick="switchMainTab('matches')" id="mainBtnMatches">📅 Spieltage & Live</button>
-            <button class="nav-tab-btn" onclick="switchMainTab('standings')" id="mainBtnStandings">📊 Gesamttabelle</button>
-        </div>
-
-        <div id="sectionMatches">
+        <!-- SPIELTAGE & SPIELE -->
+        <div class="card">
             <div class="rounds-container" id="roundsTabsContainer">
                 <button class="round-tab-btn active">Lade Spieltage...</button>
             </div>
             
-            <div class="controls">
-                <span id="currentRoundTitle" style="font-weight: bold; color: var(--accent-color);">Spieltag</span>
-                <button onclick="manualRefresh()" style="background: #21262d; border-color: var(--accent-color); color: var(--accent-color);">🔄 Aktualisieren</button>
-                <button onclick="subscribePush()" style="background: var(--accent-color); color: #000; font-weight: bold;">🔔 Tor-Alarm aktivieren</button>
+            <div class="controls" style="margin-bottom: 15px;">
+                <span id="currentRoundTitle" style="font-weight: bold; color: var(--accent-gold);">Spieltag</span>
+                <button onclick="manualRefresh()" style="background: #16264f; border-color: var(--accent-gold); color: var(--accent-gold);">🔄 Aktualisieren</button>
+                <button onclick="subscribePush()" style="background: var(--accent-gold); color: #000; font-weight: bold;">🔔 Tor-Alarm aktivieren</button>
             </div>
 
-            <div class="card">
-                <h2 id="matchesCardTitle">Begegnungen</h2>
-                <div id="matchesList">Wähle einen Spieltag aus...</div>
-            </div>
+            <h2 id="matchesCardTitle" style="margin-top: 15px;">Begegnungen</h2>
+            <div id="matchesList">Wähle einen Spieltag aus...</div>
         </div>
 
-        <div id="sectionStandings" style="display: none;">
-            <div class="card">
-                <h2>Tabelle (Oberliga Niederrhein)</h2>
-                <div id="tableContainer">Lade Tabelle...</div>
-            </div>
+        <!-- GESAMTTABELLE -->
+        <div class="card">
+            <h2>📊 Gesamttabelle — Oberliga Niederrhein</h2>
+            <div id="tableContainer">Lade Tabelle...</div>
         </div>
     </div>
 
-    <!-- Modal für Spieldetails & Torjägerliste -->
+    <!-- Modal für Spieldetails -->
     <div id="matchModal" class="modal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeModal()">&times;</button>
@@ -226,7 +198,7 @@
                 <div id="modalStatus" style="color: var(--text-muted); font-size: 0.85rem;"></div>
             </div>
             <div style="margin-top: 15px;">
-                <h3 id="modalSectionTitle" style="font-size: 1rem; color: var(--accent-color); margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">Tore & Spielverlauf</h3>
+                <h3 id="modalSectionTitle" style="font-size: 1rem; color: var(--accent-gold); margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">Tore & Spielverlauf</h3>
                 <div id="modalEvents">Lade Spieldetails...</div>
             </div>
         </div>
@@ -234,20 +206,26 @@
 
     <script>
         const apiKey = "297322363f3bf16e1304cfb933a0c8d5";
-        const leagueId = 751; // Korrekte ID für Oberliga Niederrhein v3[cite: 3]
+        const leagueId = 751; // Oberliga Niederrhein
         const season = "2026";
         const teamHighlightName = "Scherpenberg";
+
+        const SUPABASE_URL = 'https://lhusylpjnujlqomougmg.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_yXEueWILvAq-Vm2VfTuYyg_BIQeE1KK';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const ADMIN_PIN = "1919";
+        let isAdmin = false;
+
         let allFixturesGrouped = {};
         let activeRound = "";
-        let previousScores = {}; 
-        let globalTopScorers = [];
         let liveCheckInterval = null;
 
         async function init() {
             await checkApiStatus();
+            await loadSentGoalsCache();
             await loadAllFixtures();
             loadTable();
-            loadTopScorers();
         }
 
         async function checkApiStatus() {
@@ -266,75 +244,121 @@
             }
         }
 
-        async function loadTopScorers() {
-            try {
-                const res = await fetch(`https://v3.football.api-sports.io/players/topscorers?league=${leagueId}&season=${season}`, {
-                    headers: { "x-apisports-key": apiKey }
-                });
-                const data = await res.json();
-                const widgetGrid = document.getElementById("topScorersWidgetGrid");
-
-                if(data.response && data.response.length > 0) {
-                    globalTopScorers = data.response;
-                    let widgetHtml = "";
-                    
-                    for(let i = 0; i < Math.min(3, globalTopScorers.length); i++) {
-                        let p = globalTopScorers[i];
-                        let goals = p.statistics && p.statistics[0] && p.statistics[0].goals ? (p.statistics[0].goals.total || 0) : 0;
-                        widgetHtml += `
-                            <div class="top-scorer-podium">
-                                <div style="font-size:0.7rem; color:var(--text-muted);">#${i+1}</div>
-                                <div class="top-scorer-name">${p.player.name}</div>
-                                <div class="top-scorer-goals">⚽ ${goals} Tore</div>
-                            </div>
-                        `;
-                    }
-                    widgetGrid.innerHTML = widgetHtml;
-                } else {
-                    widgetGrid.innerHTML = `<div style="grid-column: span 3; text-align:center; font-size:0.8rem; color:var(--text-muted);">Keine Torjäger in der API</div>`;
+        function toggleAdminMode() {
+            if (!isAdmin) {
+                const pin = prompt("Admin-PIN eingeben:");
+                if (pin === ADMIN_PIN) {
+                    isAdmin = true;
+                    document.body.classList.add('admin-mode');
+                    document.getElementById('adminLockBtn').textContent = "🔓 Admin";
+                    document.getElementById('adminLockBtn').classList.add('unlocked');
+                } else if (pin !== null) {
+                    alert("Falsche PIN!");
                 }
-            } catch(e) {
-                widgetGrid.innerHTML = `<div style="grid-column: span 3; text-align:center; font-size:0.8rem; color:var(--text-muted);">Torjäger nicht verfügbar</div>`;
-            }
-        }
-
-        function openTopScorersModal() {
-            const modal = document.getElementById("matchModal");
-            modal.style.display = "flex";
-            document.getElementById("modalTeamsHeader").innerHTML = "⚽ Gesamte Torjägerliste";
-            document.getElementById("modalStatus").textContent = "Oberliga Niederrhein";
-            document.getElementById("modalSectionTitle").textContent = "Top-Scorer der Saison";
-            
-            const container = document.getElementById("modalEvents");
-            if(globalTopScorers.length > 0) {
-                let html = `<table><tr><th>#</th><th>Spieler</th><th>Team</th><th class="right">Tore</th></tr>`;
-                globalTopScorers.forEach((p, idx) => {
-                    let stats = p.statistics && p.statistics[0] ? p.statistics[0] : { goals: { total: 0 }, team: { name: '-' } };
-                    let goals = stats.goals.total || 0;
-                    html += `
-                        <tr>
-                            <td><b>${idx+1}</b></td>
-                            <td>${p.player.name}</td>
-                            <td style="color:var(--text-muted);">${stats.team.name}</td>
-                            <td class="right" style="color:var(--accent-color); font-weight:bold;">${goals}</td>
-                        </tr>
-                    `;
-                });
-                html += `</table>`;
-                container.innerHTML = html;
             } else {
-                container.innerHTML = "<div style='text-align:center; padding:15px; color:var(--text-muted);'>Für diese Amateurliga stellt die API leider keine Torjägerliste bereit.</div>";
+                isAdmin = false;
+                document.body.classList.remove('admin-mode');
+                document.getElementById('adminLockBtn').textContent = "🔒 Admin";
+                document.getElementById('adminLockBtn').classList.remove('unlocked');
             }
         }
 
-        function subscribePush() {
-            window.OneSignalDeferred.push(async function(OneSignal) {
-                try {
-                    await OneSignal.Slidedown.promptPush();
-                } catch (e) {
-                    console.error("Push-Anmeldung fehlgeschlagen:", e);
+        // ==========================================
+        // SUPABASE PUSH & TOR-ALARM (SENT GOALS ABGLEICH)
+        // ==========================================
+        let sentGoalsCache = {};
+
+        async function loadSentGoalsCache() {
+            try {
+                const { data, error } = await supabaseClient.from('sent_goals_oberliga').select('*');
+                if (data) {
+                    data.forEach(row => {
+                        sentGoalsCache[row.match_id] = { home: row.home_score, away: row.away_score };
+                    });
                 }
-            });
+            } catch (e) {
+                console.error("Fehler beim Laden der sent_goals Cache:", e);
+            }
+        }
+
+        async function recordGoalInSupabase(matchId, homeScore, awayScore) {
+            sentGoalsCache[matchId] = { home: homeScore, away: awayScore };
+            try {
+                await supabaseClient.from('sent_goals_oberliga').upsert({
+                    match_id: String(matchId),
+                    home_score: homeScore,
+                    away_score: awayScore,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'match_id' });
+            } catch (e) {
+                console.error("Fehler beim Speichern in sent_goals_oberliga:", e);
+            }
+        }
+
+        async function subscribePush() {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                alert("Push-Benachrichtigungen werden von diesem Browser leider nicht unterstützt.");
+                return;
+            }
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    alert("Die Berechtigung für Benachrichtigungen wurde verweigert.");
+                    return;
+                }
+                const registration = await navigator.serviceWorker.register('./sw.js');
+                await registration.ready;
+
+                const publicVapidKey = 'BAsnfWgySLti5LzulXfN-xI-x7UDV32LO98YXgg1qdoRY1E1Tl05QPgCvOMgfwe80cSv_K7336-dhJTgBkHUI70';
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+                });
+
+                const p256dh = subscription.getKey('p256dh') ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))) : '';
+                const auth = subscription.getKey('auth') ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth')))) : '';
+
+                await supabaseClient.from('push_subscriptions_oberliga').upsert({
+                    endpoint: subscription.endpoint,
+                    p256dh: p256dh,
+                    auth: auth
+                }, { onConflict: 'endpoint' });
+
+                alert("SV Scherpenberg Tor-Alarm erfolgreich aktiviert!");
+            } catch (error) {
+                console.error('Fehler bei der Push-Registrierung:', error);
+                alert("Fehler beim Aktivieren der Benachrichtigung: " + error.message);
+            }
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        async function sendTestPush() {
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        table: 'push_subscriptions_oberliga',
+                        title: "⚽ SV Scherpenberg Tor-Alarm (Test)",
+                        body: "Test-Alarm über Supabase Edge Function erfolgreich ausgelöst!"
+                    })
+                });
+                if (response.ok) alert("Test-Push erfolgreich ausgelöst!");
+                else alert("Fehler von der Edge Function.");
+            } catch (e) {
+                alert("Netzwerkfehler: " + e.message);
+            }
         }
 
         function showGoalAlert(teamName, scorerInfo, matchInfo) {
@@ -352,26 +376,6 @@
 
         function hideGoalAlert() {
             document.getElementById("goalAlertBanner").style.display = "none";
-        }
-
-        function switchMainTab(tab) {
-            const matchesSec = document.getElementById("sectionMatches");
-            const standingsSec = document.getElementById("sectionStandings");
-            const btnMatches = document.getElementById("mainBtnMatches");
-            const btnStandings = document.getElementById("mainBtnStandings");
-
-            if(tab === 'matches') {
-                matchesSec.style.display = "block";
-                standingsSec.style.display = "none";
-                btnMatches.className = "nav-tab-btn active";
-                btnStandings.className = "nav-tab-btn";
-            } else {
-                matchesSec.style.display = "none";
-                standingsSec.style.display = "block";
-                btnStandings.className = "nav-tab-btn active";
-                btnMatches.className = "nav-tab-btn";
-                loadTable();
-            }
         }
 
         async function loadAllFixtures() {
@@ -488,7 +492,7 @@
                         const home = m.teams.home;
                         const away = m.teams.away;
                         const goalsHome = m.goals.home !== null ? m.goals.home : 0;
-                        const goalsAway = m.goals.goalsAway !== null ? m.goals.away : 0;
+                        const goalsAway = m.goals.away !== null ? m.goals.away : 0;
 
                         const statusShort = m.fixture.status.short;
                         const isLive = ["1H", "2H", "ET", "P", "HT"].includes(statusShort);
@@ -497,20 +501,22 @@
                         const isScherpenbergMatch = home.name.toLowerCase().includes(teamHighlightName.toLowerCase()) || 
                                                     away.name.toLowerCase().includes(teamHighlightName.toLowerCase());
 
-                        if (previousScores[fixtureId] !== undefined) {
-                            const prevH = previousScores[fixtureId].home;
-                            const prevA = previousScores[fixtureId].away;
-
-                            if (goalsHome > prevH || goalsAway > prevA) {
-                                let scoringTeam = goalsHome > prevH ? home.name : away.name;
+                        // Abgleich mit sent_goals_oberliga Cache
+                        let cachedScore = sentGoalsCache[fixtureId];
+                        if (!cachedScore) {
+                            // Initialer Zustand ohne Alarm direkt cachen
+                            recordGoalInSupabase(fixtureId, goalsHome, goalsAway);
+                        } else {
+                            if (goalsHome > cachedScore.home || goalsAway > cachedScore.away) {
+                                let scoringTeam = goalsHome > cachedScore.home ? home.name : away.name;
                                 let latestGoal = events.filter(ev => ev.type === 'Goal').pop();
                                 let scorerText = latestGoal && latestGoal.player ? `${latestGoal.player.name} (${latestGoal.time.elapsed}. Min)` : "Aktuelles Tor";
                                 let matchText = `${home.name} - ${away.name} (${goalsHome}:${goalsAway})`;
 
                                 showGoalAlert(scoringTeam, scorerText, matchText);
+                                recordGoalInSupabase(fixtureId, goalsHome, goalsAway);
                             }
                         }
-                        previousScores[fixtureId] = { home: goalsHome, away: goalsAway };
 
                         const displayHome = m.goals.home !== null ? m.goals.home : "-";
                         const displayAway = m.goals.away !== null ? m.goals.away : "-";
@@ -575,7 +581,6 @@
                     document.getElementById('tickerLabel').textContent = cleanTitle;
                     document.getElementById('tickerTrack').innerHTML = tickerHtml + tickerHtml;
 
-                    // SMART POLLING: Nur bei Live-Spielen automatisch im 60 Sek. Takt pollen!
                     if (hasLiveGames) {
                         if (!liveCheckInterval) {
                             liveCheckInterval = setInterval(() => {
@@ -619,7 +624,7 @@
 
                     document.getElementById("modalTeamsHeader").innerHTML = `
                         <div style="display:flex; align-items:center; gap:8px;"><img src="${home.logo}">${home.name}</div>
-                        <div style="background:#21262d; padding:4px 12px; border-radius:6px;">${match.goals.home ?? 0} : ${match.goals.away ?? 0}</div>
+                        <div style="background:var(--bg-color); padding:4px 12px; border-radius:6px; border:1px solid var(--border-color);">${match.goals.home ?? 0} : ${match.goals.away ?? 0}</div>
                         <div style="display:flex; align-items:center; gap:8px;"><img src="${away.logo}">${away.name}</div>
                     `;
                     document.getElementById("modalStatus").textContent = `Status: ${match.fixture.status.long}`;
@@ -681,7 +686,7 @@
 
                         html += `<tr class="${zoneClass}">
                             <td><b>${s.rank}</b></td>
-                            <td><div class="table-team"><img src="${s.team.logo}"><span ${isScherpenberg ? 'style="font-weight:bold; color:var(--scherpenberg-color);"' : ''}>${s.team.name}</span></div></td>
+                            <td><div class="table-team"><img src="${s.team.logo}"><span ${isScherpenberg ? 'style="font-weight:bold; color:var(--accent-gold);"' : ''}>${s.team.name}</span></div></td>
                             <td class="center">${s.all.played}</td>
                             <td class="center">${s.all.goals.for}:${s.all.goals.against}</td>
                             <td class="center">${s.goalsDiff > 0 ? '+' + s.goalsDiff : s.goalsDiff}</td>
